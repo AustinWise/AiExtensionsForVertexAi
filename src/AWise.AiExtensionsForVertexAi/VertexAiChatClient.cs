@@ -9,11 +9,13 @@ namespace AWise.AiExtensionsForVertexAi;
 public class VertexAiChatClient : IChatClient
 {
     private readonly PredictionServiceClient _client;
+    private readonly string? _defaultModelId;
 
-    public VertexAiChatClient(PredictionServiceClient client)
+    public VertexAiChatClient(PredictionServiceClient client, string? defaultModelId = null)
     {
         ArgumentNullException.ThrowIfNull(client);
         _client = client;
+        _defaultModelId = defaultModelId;
     }
 
     public async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
@@ -279,6 +281,23 @@ public class VertexAiChatClient : IChatClient
                 throw new NotImplementedException("AdditionalProperties not implemented.");
             }
         }
+
+        if (string.IsNullOrEmpty(request.Model))
+        {
+            if (string.IsNullOrEmpty(_defaultModelId))
+            {
+                // The error message from the API when we don't specify a model is somewhat inscrutable:
+                //   Invalid resource field value in the request.
+                // And forgetting to set a model is easy. So this is the one piece of validation we do
+                // before sending the request.
+                throw new ArgumentException($"Please specify the ModelId, either in ChatOptions.ModelId or the defaultModelId when creating the {nameof(VertexAiChatClient)}.");
+            }
+            else
+            {
+                request.Model = _defaultModelId;
+            }
+        }
+
         foreach (var message in messages)
         {
             var content = new Content();
@@ -306,7 +325,6 @@ public class VertexAiChatClient : IChatClient
             }
 
             // TODO: throw for other properties we don't support??
-
             foreach (var messageContent in message.Contents)
             {
                 var part = new Part();
