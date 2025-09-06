@@ -20,24 +20,105 @@ public class VertexAiChatClient : IChatClient
     {
         var request = CreateRequest(messages, options);
         var response = await _client.GenerateContentAsync(request, cancellationToken).ConfigureAwait(false);
-        throw new NotImplementedException();
+        if (response.Candidates.Count != 1)
+        {
+            throw new InvalidOperationException($"Unexpected number of candidates: {response.Candidates.Count}");
+        }
+        var candidate = response.Candidates[0];
+        var chatResponse = new ChatResponse()
+        {
+            ResponseId = response.ResponseId,
+        };
+        if (candidate.HasFinishMessage)
+        {
+            chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
+        }
+
+        chatResponse.Messages.Add(new ChatMessage()
+        {
+            Role = GetRole(candidate.Content),
+            Contents = ConvertToAiContent(candidate.Content),
+        });
+        return chatResponse;
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var request = CreateRequest(messages, options);
-        // TODO: validate that all nulls are ok
-        var callSettings = new CallSettings(cancellationToken, null, null, null, null, null);
+        var callSettings = CallSettings.FromCancellationToken(cancellationToken);
         using (var stream = _client.StreamGenerateContent(request, callSettings))
         {
             // TODO: ConfigureAwait
-            await foreach (var res in stream.GetResponseStream())
+            await foreach (var response in stream.GetResponseStream())
             {
-                yield return null;
+                if (response.Candidates.Count != 1)
+                {
+                    throw new InvalidOperationException($"Unexpected number of candidates: {response.Candidates.Count}");
+                }
+                var candidate = response.Candidates[0];
+                var chatResponse = new ChatResponseUpdate()
+                {
+                    ResponseId = response.ResponseId,
+                };
+                if (candidate.HasFinishMessage)
+                {
+                    chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
+                }
+                chatResponse.Role = GetRole(candidate.Content);
+                chatResponse.Contents = ConvertToAiContent(candidate.Content);
+                yield return chatResponse;
             }
         }
-        throw new NotImplementedException();
     }
+
+    // TODO: make sure these mappings and exceptions make sense. Like would it be better to create custom ChatFinishReasons for each type?
+    private static ChatFinishReason? GetFinishReason(Google.Cloud.AIPlatform.V1.Candidate.Types.FinishReason finishReason, string finishMessage)
+    {
+        return finishReason switch
+        {
+            Candidate.Types.FinishReason.Stop => ChatFinishReason.Stop,
+            Candidate.Types.FinishReason.MaxTokens => ChatFinishReason.Length,
+            Candidate.Types.FinishReason.Safety => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.Recitation => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.Spii => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.Blocklist => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.ProhibitedContent => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.ModelArmor => ChatFinishReason.ContentFilter,
+            Candidate.Types.FinishReason.MalformedFunctionCall => throw new InvalidOperationException("Malformed tool call: " + finishMessage),
+            Candidate.Types.FinishReason.Other => throw new InvalidOperationException("Other finish reason: " + finishMessage),
+            Candidate.Types.FinishReason.Unspecified => null,
+            _ => null,
+        };
+    }
+
+    private static ChatRole GetRole(Content content)
+    {
+        return content.Role switch
+        {
+            "user" => ChatRole.User,
+            "model" => ChatRole.Assistant,
+            _ => throw new InvalidOperationException("Unexpected role: " + content.Role),
+        };
+    }
+
+    private static IList<AIContent> ConvertToAiContent(Content content)
+    {
+        var ret = new List<AIContent>();
+        foreach (var part in content.Parts)
+        {
+            if (part.HasText)
+            {
+                ret.Add(new TextContent(part.Text));
+            }
+            // TODO: implement other part types.
+            else
+            {
+                throw new NotImplementedException("Not implemented part type: " + part.DataCase);
+            }
+        }
+        return ret;
+    }
+
 
     private GenerateContentRequest CreateRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
