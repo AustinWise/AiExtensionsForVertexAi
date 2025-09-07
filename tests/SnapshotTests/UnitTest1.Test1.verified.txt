@@ -1,0 +1,17 @@
+﻿{
+  Messages: [
+    {
+      Role: {
+        Value: assistant
+      },
+      Text: Hi!,
+      Contents: [
+        {
+          Text: Hi!
+        }
+      ]
+    }
+  ],
+  Text: Hi!,
+  ResponseId: T-e8aN2wHu6fmecPxpLnsA8
+}
