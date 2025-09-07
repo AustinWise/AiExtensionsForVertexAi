@@ -1,5 +1,6 @@
 using Google.Api.Gax.Grpc;
 using Google.Cloud.AIPlatform.V1;
+using Google.Protobuf;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -334,6 +335,17 @@ public class VertexAiChatClient : IChatClient
                 if (messageContent is TextContent textContent)
                 {
                     part.Text = textContent.Text;
+                }
+                else if (messageContent is DataContent dataContent)
+                {
+                    part.InlineData = new Blob()
+                    {
+                        // dataContent.Data is a ReadOnlyMemory, so its size can't change.
+                        // The only this that could change is the backing array, but that
+                        // should not be unsafe.
+                        Data = UnsafeByteOperations.UnsafeWrap(dataContent.Data),
+                        MimeType = dataContent.MediaType,
+                    };
                 }
                 // TODO: implement more content types
                 else
