@@ -11,9 +11,6 @@ by wrapping the
 
 * Fix all TODOs in the code.
 * Add an implementation of interfaces besides `IChatClient`, like `IEmbeddingGenerator`.
-* Add some snapshot tests that save the result of the Vertex AI. This will enable running unit tests
-  without an internet connection. It should also make it easier to write reliable tests, since the
-  generated text won't change from run-to-run.
 * Maybe a different name? The documentation for this API calls the product "Vertex AI" while the wrapped
   Nuget package is called "AI Platform".
 * Maybe wrap the Gemini API instead of Vertex AI? There are not existing client libraries for this,

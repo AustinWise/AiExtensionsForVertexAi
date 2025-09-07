@@ -1,0 +1,16 @@
+﻿{
+  Messages: [
+    {
+      Role: {
+        Value: assistant
+      },
+      Text: Hi.,
+      Contents: [
+        {
+          Text: Hi.
+        }
+      ]
+    }
+  ],
+  Text: Hi.
+}

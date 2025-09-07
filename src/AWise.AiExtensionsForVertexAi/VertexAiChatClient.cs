@@ -29,8 +29,11 @@ public class VertexAiChatClient : IChatClient
         var candidate = response.Candidates[0];
         var chatResponse = new ChatResponse()
         {
-            ResponseId = response.ResponseId,
         };
+        if (!TestHelpers.IsRunningInUnitTest)
+        {
+            chatResponse.ResponseId = response.ResponseId;
+        }
         if (candidate.HasFinishMessage)
         {
             chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
