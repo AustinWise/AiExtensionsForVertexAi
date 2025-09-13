@@ -78,7 +78,7 @@ public class VertexAiChatClient : IChatClient
     }
 
     // TODO: make sure these mappings and exceptions make sense. Like would it be better to create custom ChatFinishReasons for each type?
-    private static ChatFinishReason? GetFinishReason(Google.Cloud.AIPlatform.V1.Candidate.Types.FinishReason finishReason, string finishMessage)
+    private static ChatFinishReason? GetFinishReason(Candidate.Types.FinishReason finishReason, string finishMessage)
     {
         return finishReason switch
         {

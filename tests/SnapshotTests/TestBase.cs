@@ -3,6 +3,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace SnapshotTests;
 
@@ -25,33 +26,30 @@ public abstract class TestBase
 
     protected PredictionServiceClient CreatePredictionServiceClient([CallerMemberName] string? caller = null)
     {
-        string? folder = Path.GetDirectoryName(GetType().Assembly.Location);
+        ArgumentException.ThrowIfNullOrEmpty(caller);
 
+        string? folder = Path.GetDirectoryName(GetType().Assembly.Location);
         while (folder != null)
         {
             if (File.Exists(Path.Combine(folder, "SnapshotTests.csproj")))
                 break;
             folder = Path.GetDirectoryName(folder);
         }
-
         if (folder is null)
         {
             throw new Exception("could not find snapshot folder");
         }
-
-        folder = Path.Combine(folder, "grpc-request-response-snapshots");
-
-        string requestFile = Path.Combine(folder, $"{GetType().Name}.{caller}.request.binarypb");
-        string responseFile = Path.Combine(folder, $"{GetType().Name}.{caller}.response.binarypb");
+        folder = Path.Combine(folder, "grpc-request-response-snapshots", GetType().Name, caller);
+        Directory.CreateDirectory(folder);
 
         Interceptor interceptor;
         if (IsRecording)
         {
-            interceptor = new RecordingInterceptor(requestFile, responseFile);
+            interceptor = new RecordingInterceptor(folder);
         }
         else
         {
-            interceptor = new ReplayInterceptor(requestFile, responseFile);
+            interceptor = new ReplayInterceptor(folder);
         }
 
         var builder = new PredictionServiceClientBuilder()
@@ -65,20 +63,60 @@ public abstract class TestBase
         return builder.Build();
     }
 
-
-    class RecordingInterceptor(string requestFile, string responseFile) : Interceptor
+    private static string CreateRequestPath(string folder, int ndx)
     {
+        return Path.Combine(folder, $"{ndx}.request.binarypb");
+    }
+
+    private static string CreateResponsePath(string folder, int ndx)
+    {
+        return Path.Combine(folder, $"{ndx}.response.binarypb");
+    }
+
+    private static string CreateStatusPath(string folder, int ndx)
+    {
+        return Path.Combine(folder, $"{ndx}.status.json");
+    }
+
+    class RecordingInterceptor(string folder) : Interceptor
+    {
+        private int _count;
+
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
         {
+            int ndx = _count++;
+            string requestFile = CreateRequestPath(folder, ndx);
+            string responseFile = CreateResponsePath(folder, ndx);
+            string statusFile = CreateStatusPath(folder, ndx);
+
             using (var fs = File.Create(requestFile))
             {
                 ((IMessage)request).WriteTo(fs);
             }
             var response = continuation.Invoke(request, context);
-            using (var fs = File.Create(responseFile))
+            try
             {
-                ((IMessage)response.ResponseAsync.GetAwaiter().GetResult()).WriteTo(fs);
+                var responseMessage = (IMessage)response.ResponseAsync.GetAwaiter().GetResult();
+                using (var fs = File.Create(responseFile))
+                {
+                    responseMessage.WriteTo(fs);
+                }
             }
+            catch (RpcException)
+            {
+                // will capture the status below
+            }
+
+            using (var fs = File.Create(statusFile))
+            {
+                Status status = response.GetStatus();
+                using var writer = new Utf8JsonWriter(fs, new JsonWriterOptions() { Indented = true });
+                writer.WriteStartObject();
+                writer.WriteNumber("StatusCode"u8, (int)status.StatusCode);
+                writer.WriteString("Detail"u8, status.Detail);
+                writer.WriteEndObject();
+            }
+
             return response;
         }
 
@@ -125,23 +163,67 @@ public abstract class TestBase
         #endregion
     }
 
-    class ReplayInterceptor(string requestFile, string responseFile) : Interceptor
+    class ReplayInterceptor(string folder) : Interceptor
     {
+        private int _count;
+
+        private static Status ReadStatusFile(string statusFile)
+        {
+            int statusCode;
+            string detail;
+
+            var reader = new Utf8JsonReader(File.ReadAllBytes(statusFile));
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+                throw new Exception("Missing StartObject");
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "StatusCode")
+                throw new Exception("Missing StatusCode property");
+            if (!reader.Read() || reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out statusCode))
+                throw new Exception("Failed to read StatusCode");
+            if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Detail")
+                throw new Exception("Missing Detail property");
+            if (!reader.Read() || reader.TokenType != JsonTokenType.String || (detail = reader.GetString()!) == null)
+                throw new Exception("Failed to read Detail");
+            if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
+                throw new Exception("Missing EndObject");
+            if (reader.Read())
+                throw new Exception("Expected EOF");
+
+            return new Status((StatusCode)statusCode, detail);
+        }
+
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
         {
+            int ndx = _count++;
+            string requestFile = CreateRequestPath(folder, ndx);
+            string responseFile = CreateResponsePath(folder, ndx);
+            string statusFile = CreateStatusPath(folder, ndx);
+
             var requestSnapshot = (IMessage)Activator.CreateInstance<TRequest>();
             using (var fs = File.OpenRead(requestFile))
             {
                 requestSnapshot.MergeFrom(fs);
             }
             Assert.Equal(requestSnapshot, (IMessage)request);
-            var response = Activator.CreateInstance<TResponse>();
-            using (var fs = File.OpenRead(responseFile))
+
+            Status status = ReadStatusFile(statusFile);
+
+            Task<TResponse> responseTask;
+            if (status.StatusCode == StatusCode.OK)
             {
-                ((IMessage)response).MergeFrom(fs);
+                var response = Activator.CreateInstance<TResponse>();
+                using (var fs = File.OpenRead(responseFile))
+                {
+                    ((IMessage)response).MergeFrom(fs);
+                }
+                responseTask = Task.FromResult(response);
             }
-            // TODO: maybe capture these other things?
-            return new AsyncUnaryCall<TResponse>(Task.FromResult(response), Task.FromResult(Metadata.Empty), () => Status.DefaultSuccess, () => Metadata.Empty, () => { });
+            else
+            {
+                responseTask = Task.FromException<TResponse>(new RpcException(status));
+            }
+
+            // TODO: maybe capture headers and trailers?
+            return new AsyncUnaryCall<TResponse>(responseTask, Task.FromResult(Metadata.Empty), () => status, () => Metadata.Empty, () => { });
         }
 
         #region NYI
