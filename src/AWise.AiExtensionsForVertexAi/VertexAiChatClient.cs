@@ -112,14 +112,24 @@ public class VertexAiChatClient : IChatClient
         var ret = new List<AIContent>();
         foreach (var part in content.Parts)
         {
-            if (part.HasText)
+            switch (part.DataCase)
             {
-                ret.Add(new TextContent(part.Text));
-            }
-            // TODO: implement other part types.
-            else
-            {
-                throw new NotImplementedException("Not implemented part type: " + part.DataCase);
+                case Part.DataOneofCase.Text:
+                    ret.Add(new TextContent(part.Text));
+                    break;
+                case Part.DataOneofCase.FunctionCall:
+                    var args = part.FunctionCall.Args.Fields.ToDictionary(a => a.Key, a => (object?)ProtoJsonConversions.ConvertValueToJsonNode(a.Value));
+                    ret.Add(new FunctionCallContent(part.FunctionCall.Name, part.FunctionCall.Name,args));
+                    break;
+                case Part.DataOneofCase.FunctionResponse:
+                case Part.DataOneofCase.InlineData:
+                case Part.DataOneofCase.FileData:
+                case Part.DataOneofCase.ExecutableCode:
+                case Part.DataOneofCase.CodeExecutionResult:
+                    throw new NotImplementedException("Not implemented part type: " + part.DataCase);
+                case Part.DataOneofCase.None:
+                default:
+                    throw new InvalidOperationException("Unexpected part type: " + part.DataCase);
             }
         }
         return ret;
@@ -187,7 +197,7 @@ public class VertexAiChatClient : IChatClient
                     request.GenerationConfig.ResponseMimeType = "application/json";
                     if (json.Schema.HasValue)
                     {
-                        request.GenerationConfig.ResponseJsonSchema = ConvertSchema(json.Schema.Value);
+                        request.GenerationConfig.ResponseJsonSchema = ProtoJsonConversions.ConvertJsonElementToValue(json.Schema.Value);
                     }
                 }
                 else
@@ -250,11 +260,11 @@ public class VertexAiChatClient : IChatClient
                         // TODO: is there a better way to detect empty object?
                         if (function.JsonSchema.ValueKind == JsonValueKind.Object && function.JsonSchema.EnumerateObject().GetEnumerator().MoveNext())
                         {
-                            decl.ParametersJsonSchema = ConvertSchema(function.JsonSchema);
+                            decl.ParametersJsonSchema = ProtoJsonConversions.ConvertJsonElementToValue(function.JsonSchema);
                         }
                         if (function.ReturnJsonSchema.HasValue)
                         {
-                            decl.ResponseJsonSchema = ConvertSchema(function.ReturnJsonSchema.Value);
+                            decl.ResponseJsonSchema = ProtoJsonConversions.ConvertJsonElementToValue(function.ReturnJsonSchema.Value);
                         }
                         if (function.AdditionalProperties.Count != 0)
                         {
@@ -305,7 +315,7 @@ public class VertexAiChatClient : IChatClient
         foreach (var message in messages)
         {
             var content = new Content();
-            if (message.Role == ChatRole.User)
+            if (message.Role == ChatRole.User || message.Role == ChatRole.Tool)
             {
                 content.Role = "user";
             }
@@ -317,11 +327,6 @@ public class VertexAiChatClient : IChatClient
             {
                 // TODO: do we have to stuff this into the request.SystemInstruction? Something else?
                 throw new NotImplementedException("Not implemented: ChatRole.System");
-            }
-            else if (message.Role == ChatRole.Tool)
-            {
-                // TODO: does this get mapped to user or model??
-                throw new NotImplementedException("Not implemented: ChatRole.Tool");
             }
             else
             {
@@ -347,6 +352,31 @@ public class VertexAiChatClient : IChatClient
                         MimeType = dataContent.MediaType,
                     };
                 }
+                else if (messageContent is FunctionCallContent functionCall)
+                {
+                    part.FunctionCall = new FunctionCall()
+                    {
+                        Name = functionCall.Name,
+                    };
+                    if (functionCall.Arguments != null)
+                    {
+                        var args = new Google.Protobuf.WellKnownTypes.Struct();
+                        foreach (var arg in functionCall.Arguments)
+                        {
+                            args.Fields[arg.Key] = ProtoJsonConversions.ConvertObjectToValue(arg.Value);
+                        }
+                        part.FunctionCall.Args = args;
+                    }
+                }
+                else if (messageContent is FunctionResultContent functionResult)
+                {
+                    part.FunctionResponse = new FunctionResponse()
+                    {
+                        Name = functionResult.CallId,
+                        // TODO: figure out if it is valid to always pull a struct out of this.
+                        Response = ProtoJsonConversions.ConvertObjectToValue(functionResult.Result).StructValue,
+                    };
+                }
                 // TODO: implement more content types
                 else
                 {
@@ -358,15 +388,6 @@ public class VertexAiChatClient : IChatClient
             request.Contents.Add(content);
         }
         return request;
-    }
-
-    private static Google.Protobuf.WellKnownTypes.Value ConvertSchema(JsonElement element)
-    {
-        return new Google.Protobuf.WellKnownTypes.Value()
-        {
-            // TODO: confirm this works; maybe it should be a struct instead???
-            StringValue = element.ToString(),
-        };
     }
 
     object? IChatClient.GetService(System.Type serviceType, object? serviceKey)
