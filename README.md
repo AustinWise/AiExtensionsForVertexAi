@@ -1,5 +1,7 @@
 # A Microsoft.Extensions.AI wrapper for Vertex AI
 
+> WARNING: this is a work in progress
+
 The [Microsoft.Extensions.AI](https://learn.microsoft.com/en-us/dotnet/ai/microsoft-extensions-ai)
 library provides an abstraction for large language model (LLM) APIs. This library provides an implementation
 of those abstractions defined in the
