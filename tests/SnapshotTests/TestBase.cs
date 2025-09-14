@@ -60,6 +60,10 @@ public abstract class TestBase
                 Interceptor = interceptor,
             },
         };
+        if (!IsRecording)
+        {
+            builder.ApiKey = "fake-api";
+        }
         return builder.Build();
     }
 
