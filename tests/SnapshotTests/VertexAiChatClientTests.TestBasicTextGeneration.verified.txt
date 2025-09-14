@@ -4,13 +4,13 @@
       Role: {
         Value: assistant
       },
-      Text: Hi!,
+      Text: Hi.,
       Contents: [
         {
-          Text: Hi!
+          Text: Hi.
         }
       ]
     }
   ],
-  Text: Hi!
+  Text: Hi.
 }
