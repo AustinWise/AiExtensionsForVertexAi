@@ -115,6 +115,7 @@ internal class ProtoJsonConversions
                         NumberValue = d,
                     };
                 }
+                // We only construct numeric JsonNodes with doubles, so we should not get here.
                 // TODO: test coverage to see if we can hit this.
                 throw new InvalidOperationException("Could not get number.");
             case JsonValueKind.True:

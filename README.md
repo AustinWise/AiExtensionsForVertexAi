@@ -12,6 +12,8 @@ by wrapping the
 ## TODO
 
 * Fix all TODOs in the code.
+* Add exception mapping. Currently we allow `RpcException` to bubble up. There might be something
+  nicer we can do.
 * Add an implementation of interfaces besides `IChatClient`, like `IEmbeddingGenerator`.
 * Maybe a different name? The documentation for this API calls the product "Vertex AI" while the wrapped
   Nuget package is called "AI Platform".

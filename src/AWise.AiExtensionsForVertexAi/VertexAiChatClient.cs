@@ -119,7 +119,7 @@ public class VertexAiChatClient : IChatClient
                     break;
                 case Part.DataOneofCase.FunctionCall:
                     var args = part.FunctionCall.Args.Fields.ToDictionary(a => a.Key, a => (object?)ProtoJsonConversions.ConvertValueToJsonNode(a.Value));
-                    ret.Add(new FunctionCallContent(part.FunctionCall.Name, part.FunctionCall.Name,args));
+                    ret.Add(new FunctionCallContent(part.FunctionCall.Name, part.FunctionCall.Name, args));
                     break;
                 case Part.DataOneofCase.FunctionResponse:
                 case Part.DataOneofCase.InlineData:
@@ -139,6 +139,7 @@ public class VertexAiChatClient : IChatClient
     private GenerateContentRequest CreateRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         var request = new GenerateContentRequest();
+        request.GenerationConfig = new GenerationConfig();
         var systemInstruction = new Content();
         if (options != null)
         {
@@ -215,6 +216,8 @@ public class VertexAiChatClient : IChatClient
             }
             if (options.ToolMode != null)
             {
+                request.ToolConfig ??= new ToolConfig();
+                request.ToolConfig.FunctionCallingConfig ??= new FunctionCallingConfig();
                 if (options.ToolMode is AutoChatToolMode)
                 {
                     request.ToolConfig.FunctionCallingConfig.Mode = FunctionCallingConfig.Types.Mode.Auto;
@@ -225,7 +228,6 @@ public class VertexAiChatClient : IChatClient
                 }
                 else if (options.ToolMode is RequiredChatToolMode required)
                 {
-                    // TODO: validate that this makes sense. Specifically does the "any" on the VertexAI side mean "required", as the M.E.AI API requires.
                     if (required.RequiredFunctionName is null)
                     {
                         request.ToolConfig.FunctionCallingConfig.Mode = FunctionCallingConfig.Types.Mode.Any;
@@ -266,6 +268,7 @@ public class VertexAiChatClient : IChatClient
                         {
                             throw new NotImplementedException("AIFunction.AdditionalProperties not yet supported");
                         }
+
                         functionDeclarations.Add(decl);
                     }
                     else
@@ -274,6 +277,8 @@ public class VertexAiChatClient : IChatClient
                         // TOOD: implement code execution: https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/code-execution
                         throw new NotImplementedException("Not yet implemented tool type: " + optionTool.GetType().Name);
                     }
+                    // TODO: figure out what to do about the limit of 1 tool. It currently returns this error message for more than 1 tools:
+                    //   "Multiple tools are supported only when they are all search tools"
                     if (functionDeclarations.Count != 0)
                     {
                         var tool = new Tool();
