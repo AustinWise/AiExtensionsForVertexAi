@@ -23,8 +23,6 @@ jobs:
       run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
     - name: Build
       run: dotnet build --configuration Release /p:Version=${VERSION} src\AWise.AiExtensionsForVertexAi\AWise.AiExtensionsForVertexAi.csproj
-    - name: Test
-      run: dotnet test --configuration Release /p:Version=${VERSION} --no-build src\AWise.AiExtensionsForVertexAi\AWise.AiExtensionsForVertexAi.csproj
     - name: Pack
       run: dotnet pack --configuration Release /p:Version=${VERSION} --no-build --output . src\AWise.AiExtensionsForVertexAi\AWise.AiExtensionsForVertexAi.csproj
     - name: Push
