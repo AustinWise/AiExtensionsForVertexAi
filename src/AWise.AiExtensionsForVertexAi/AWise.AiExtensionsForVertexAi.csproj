@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Cloud.AIPlatform.V1" Version="3.45.0" />
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.8.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.9.0" />
   </ItemGroup>
 
 </Project>
