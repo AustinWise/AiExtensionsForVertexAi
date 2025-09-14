@@ -34,6 +34,37 @@ public class VertexAiChatClientTests : TestBase
     }
 
     [Fact]
+    public async Task TestSystemInstructions()
+    {
+        var vertex = CreatePredictionServiceClient();
+        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var options = new ChatOptions()
+        {
+            Instructions = "You're a language translator. Your mission is to translate text in English to French.",
+        };
+
+        var res = await client.GetResponseAsync(new ChatMessage(ChatRole.User, "Why is the sky blue?"), options);
+
+        await Verify(res);
+    }
+
+    [Fact]
+    public async Task TestSystemMessage()
+    {
+        var vertex = CreatePredictionServiceClient();
+        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        List<ChatMessage> chatMessage =
+        [
+            new ChatMessage(ChatRole.System, "You're a language translator. Your mission is to translate text in English to French."),
+            new ChatMessage(ChatRole.User, "Why is the sky blue?"),
+        ];
+
+        var res = await client.GetResponseAsync(chatMessage);
+
+        await Verify(res);
+    }
+
+    [Fact]
     public async Task TestFunctionCalling()
     {
         var vertex = CreatePredictionServiceClient();

@@ -139,6 +139,7 @@ public class VertexAiChatClient : IChatClient
     private GenerateContentRequest CreateRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         var request = new GenerateContentRequest();
+        var systemInstruction = new Content();
         if (options != null)
         {
             if (options.ConversationId != null)
@@ -147,15 +148,10 @@ public class VertexAiChatClient : IChatClient
             }
             if (options.Instructions != null)
             {
-                var content = new Content()
-                {
-                    Role = "system", // TODO: confirm this role makes sense
-                };
-                content.Parts.Add(new Part()
+                systemInstruction.Parts.Add(new Part()
                 {
                     Text = options.Instructions,
                 });
-                request.SystemInstruction = content;
             }
             if (options.Temperature.HasValue)
             {
@@ -325,8 +321,7 @@ public class VertexAiChatClient : IChatClient
             }
             else if (message.Role == ChatRole.System)
             {
-                // TODO: do we have to stuff this into the request.SystemInstruction? Something else?
-                throw new NotImplementedException("Not implemented: ChatRole.System");
+                // No role needed, we are going to append this message to the system instructions.
             }
             else
             {
@@ -385,7 +380,18 @@ public class VertexAiChatClient : IChatClient
                 content.Parts.Add(part);
             }
 
-            request.Contents.Add(content);
+            if (message.Role == ChatRole.System)
+            {
+                systemInstruction.Parts.AddRange(content.Parts);
+            }
+            else
+            {
+                request.Contents.Add(content);
+            }
+        }
+        if (systemInstruction.Parts.Count != 0)
+        {
+            request.SystemInstruction = systemInstruction;
         }
         return request;
     }
