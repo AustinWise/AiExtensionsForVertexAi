@@ -11,8 +11,12 @@ public class VertexAiChatClientTests : TestBase
     {
         var vertex = CreatePredictionServiceClient();
         var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var options = new ChatOptions()
+        {
+            Temperature = 0.0f,
+        };
 
-        var res = await client.GetResponseAsync(new ChatMessage(ChatRole.User, "Say Hi."));
+        var res = await client.GetResponseAsync( "Say \"Hi\" and nothing else.", options);
 
         await Verify(res);
     }
@@ -27,8 +31,12 @@ public class VertexAiChatClientTests : TestBase
             new ChatMessage(ChatRole.User, [new DataContent(Properties.Resources.circle, "image/png")]),
             new ChatMessage(ChatRole.User, "What type of shape is in this picture?"),
         ];
+        var options = new ChatOptions()
+        {
+            Temperature = 0.0f,
+        };
 
-        var res = await client.GetResponseAsync(chatMessage);
+        var res = await client.GetResponseAsync(chatMessage, options);
 
         await Verify(res);
     }
@@ -41,9 +49,10 @@ public class VertexAiChatClientTests : TestBase
         var options = new ChatOptions()
         {
             Instructions = "You're a language translator. Your mission is to translate text in English to French.",
+            Temperature = 0.0f,
         };
 
-        var res = await client.GetResponseAsync(new ChatMessage(ChatRole.User, "Why is the sky blue?"), options);
+        var res = await client.GetResponseAsync("Why is the sky blue?", options);
 
         await Verify(res);
     }
@@ -58,8 +67,12 @@ public class VertexAiChatClientTests : TestBase
             new ChatMessage(ChatRole.System, "You're a language translator. Your mission is to translate text in English to French."),
             new ChatMessage(ChatRole.User, "Why is the sky blue?"),
         ];
+        var options = new ChatOptions()
+        {
+            Temperature = 0.0f,
+        };
 
-        var res = await client.GetResponseAsync(chatMessage);
+        var res = await client.GetResponseAsync(chatMessage, options);
 
         await Verify(res);
     }
@@ -72,6 +85,7 @@ public class VertexAiChatClientTests : TestBase
         var options = new ChatOptions()
         {
             Tools = [AIFunctionFactory.Create(AddTwoNumbers)],
+            Temperature = 0.0f,
         };
 
         var response = await client.GetResponseAsync("What is the sum of 1087 and 5099?", options);
