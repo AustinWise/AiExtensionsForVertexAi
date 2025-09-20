@@ -1,4 +1,5 @@
 ﻿using AWise.AiExtensionsForVertexAi;
+using Google.Cloud.AIPlatform.V1;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
@@ -16,7 +17,7 @@ public class VertexAiChatClientTests : TestBase
             Temperature = 0.0f,
         };
 
-        var res = await client.GetResponseAsync( "Say \"Hi\" and nothing else.", options);
+        var res = await client.GetResponseAsync("Say \"Hi\" and nothing else.", options);
 
         await Verify(res);
     }
@@ -97,5 +98,38 @@ public class VertexAiChatClientTests : TestBase
     static int AddTwoNumbers(int a, int b)
     {
         return a + b;
+    }
+
+    [Fact]
+    public async Task TestGenerationOptions()
+    {
+        var (vertex, interceptor) = CreatePredictionServiceClientAndInterceptor();
+        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var options = new ChatOptions()
+        {
+            Temperature = 0.001f,
+            TopK = 5,
+            TopP = 0.1f,
+            MaxOutputTokens = 20,
+            FrequencyPenalty = 0.2f,
+            PresencePenalty = 0.3f,
+            Seed = 42,
+            ResponseFormat = ChatResponseFormat.Text,
+            StopSequences = ["copacabana"],
+        };
+
+        _ = await client.GetResponseAsync("Say \"Hi\" and nothing else.", options);
+
+        var request = (GenerateContentRequest)Assert.Single(interceptor.Requests);
+
+        Assert.Equal(0.001f, request.GenerationConfig.Temperature);
+        Assert.Equal(5f, request.GenerationConfig.TopK);
+        Assert.Equal(0.1f, request.GenerationConfig.TopP);
+        Assert.Equal(20, request.GenerationConfig.MaxOutputTokens);
+        Assert.Equal(0.2f, request.GenerationConfig.FrequencyPenalty);
+        Assert.Equal(0.3f, request.GenerationConfig.PresencePenalty);
+        Assert.Equal(42, request.GenerationConfig.Seed);
+        Assert.Equal("text/plain", request.GenerationConfig.ResponseMimeType);
+        Assert.Single(request.GenerationConfig.StopSequences, "copacabana");
     }
 }

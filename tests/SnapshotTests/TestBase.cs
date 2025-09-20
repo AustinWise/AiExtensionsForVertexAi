@@ -26,6 +26,12 @@ public abstract class TestBase
 
     protected PredictionServiceClient CreatePredictionServiceClient([CallerMemberName] string? caller = null)
     {
+        var (client, _) = CreatePredictionServiceClientAndInterceptor(caller);
+        return client;
+    }
+
+    protected (PredictionServiceClient, BaseInterceptor) CreatePredictionServiceClientAndInterceptor([CallerMemberName] string? caller = null)
+    {
         ArgumentException.ThrowIfNullOrEmpty(caller);
 
         string? folder = Path.GetDirectoryName(GetType().Assembly.Location);
@@ -42,7 +48,7 @@ public abstract class TestBase
         folder = Path.Combine(folder, "grpc-request-response-snapshots", GetType().Name, caller);
         Directory.CreateDirectory(folder);
 
-        Interceptor interceptor;
+        BaseInterceptor interceptor;
         if (IsRecording)
         {
             interceptor = new RecordingInterceptor(folder);
@@ -64,7 +70,7 @@ public abstract class TestBase
         {
             builder.ApiKey = "fake-api";
         }
-        return builder.Build();
+        return (builder.Build(), interceptor);
     }
 
     private static string CreateRequestPath(string folder, int ndx)
@@ -82,7 +88,13 @@ public abstract class TestBase
         return Path.Combine(folder, $"{ndx}.status.json");
     }
 
-    class RecordingInterceptor(string folder) : Interceptor
+    protected abstract class BaseInterceptor : Interceptor
+    {
+        public List<IMessage> Requests { get; } = new();
+        public List<IMessage> Responses { get; } = new();
+    }
+
+    protected class RecordingInterceptor(string folder) : BaseInterceptor
     {
         private int _count;
 
@@ -93,14 +105,17 @@ public abstract class TestBase
             string responseFile = CreateResponsePath(folder, ndx);
             string statusFile = CreateStatusPath(folder, ndx);
 
+            IMessage requestMessage = (IMessage)request;
+            Requests.Add(requestMessage);
             using (var fs = File.Create(requestFile))
             {
-                ((IMessage)request).WriteTo(fs);
+                requestMessage.WriteTo(fs);
             }
             var response = continuation.Invoke(request, context);
             try
             {
                 var responseMessage = (IMessage)response.ResponseAsync.GetAwaiter().GetResult();
+                Responses.Add(requestMessage);
                 using (var fs = File.Create(responseFile))
                 {
                     responseMessage.WriteTo(fs);
@@ -167,7 +182,7 @@ public abstract class TestBase
         #endregion
     }
 
-    class ReplayInterceptor(string folder) : Interceptor
+    protected class ReplayInterceptor(string folder) : BaseInterceptor
     {
         private int _count;
 
@@ -203,6 +218,7 @@ public abstract class TestBase
             string statusFile = CreateStatusPath(folder, ndx);
 
             var requestSnapshot = (IMessage)Activator.CreateInstance<TRequest>();
+            Requests.Add(requestSnapshot);
             using (var fs = File.OpenRead(requestFile))
             {
                 requestSnapshot.MergeFrom(fs);
@@ -215,9 +231,11 @@ public abstract class TestBase
             if (status.StatusCode == StatusCode.OK)
             {
                 var response = Activator.CreateInstance<TResponse>();
+                IMessage responseMessage = (IMessage)response;
+                Responses.Add(responseMessage);
                 using (var fs = File.OpenRead(responseFile))
                 {
-                    ((IMessage)response).MergeFrom(fs);
+                    responseMessage.MergeFrom(fs);
                 }
                 responseTask = Task.FromResult(response);
             }
