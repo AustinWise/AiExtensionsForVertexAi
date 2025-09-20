@@ -21,7 +21,7 @@ public abstract class TestBase
         string? env = Environment.GetEnvironmentVariable("AWISE_AIEXTENSIONSFORVERTEXAI_RECORD_SNAPSHOT_TESTS");
         if (string.IsNullOrEmpty(env))
             return false;
-        return env == "1" || env.ToLowerInvariant() == "true";
+        return env == "1" || env.Equals("true", StringComparison.InvariantCultureIgnoreCase);
     }
 
     protected PredictionServiceClient CreatePredictionServiceClient([CallerMemberName] string? caller = null)
@@ -90,8 +90,8 @@ public abstract class TestBase
 
     protected abstract class BaseInterceptor : Interceptor
     {
-        public List<IMessage> Requests { get; } = new();
-        public List<IMessage> Responses { get; } = new();
+        public List<IMessage> Requests { get; } = [];
+        public List<IMessage> Responses { get; } = [];
     }
 
     protected class RecordingInterceptor(string folder) : BaseInterceptor
@@ -116,10 +116,8 @@ public abstract class TestBase
             {
                 var responseMessage = (IMessage)response.ResponseAsync.GetAwaiter().GetResult();
                 Responses.Add(requestMessage);
-                using (var fs = File.Create(responseFile))
-                {
-                    responseMessage.WriteTo(fs);
-                }
+                using var fs = File.Create(responseFile);
+                responseMessage.WriteTo(fs);
             }
             catch (RpcException)
             {
@@ -188,7 +186,6 @@ public abstract class TestBase
 
         private static Status ReadStatusFile(string statusFile)
         {
-            int statusCode;
             string detail;
 
             var reader = new Utf8JsonReader(File.ReadAllBytes(statusFile));
@@ -196,7 +193,7 @@ public abstract class TestBase
                 throw new Exception("Missing StartObject");
             if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "StatusCode")
                 throw new Exception("Missing StatusCode property");
-            if (!reader.Read() || reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out statusCode))
+            if (!reader.Read() || reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out int statusCode))
                 throw new Exception("Failed to read StatusCode");
             if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "Detail")
                 throw new Exception("Missing Detail property");

@@ -15,24 +15,16 @@ internal class ProtoJsonConversions
     // we aim for the code path where JsonSerializer is used to deserialize a JsonNode.
     internal static JsonNode? ConvertValueToJsonNode(Value value)
     {
-        switch (value.KindCase)
+        return value.KindCase switch
         {
-            case Value.KindOneofCase.NullValue:
-                return null;
-            case Value.KindOneofCase.NumberValue:
-                return JsonValue.Create(value.NumberValue);
-            case Value.KindOneofCase.StringValue:
-                return JsonValue.Create(value.StringValue);
-            case Value.KindOneofCase.BoolValue:
-                return JsonValue.Create(value.BoolValue);
-            case Value.KindOneofCase.StructValue:
-                return new JsonObject(value.StructValue.Fields.Select(kvp => KeyValuePair.Create(kvp.Key, ConvertValueToJsonNode(kvp.Value))));
-            case Value.KindOneofCase.ListValue:
-                return new JsonArray(value.ListValue.Values.Select(v => ConvertValueToJsonNode(v)).ToArray());
-            case Value.KindOneofCase.None:
-            default:
-                throw new InvalidOperationException("Unexpected Value kind: " + value.KindCase);
-        }
+            Value.KindOneofCase.NullValue => null,
+            Value.KindOneofCase.NumberValue => JsonValue.Create(value.NumberValue),
+            Value.KindOneofCase.StringValue => JsonValue.Create(value.StringValue),
+            Value.KindOneofCase.BoolValue => JsonValue.Create(value.BoolValue),
+            Value.KindOneofCase.StructValue => new JsonObject(value.StructValue.Fields.Select(kvp => KeyValuePair.Create(kvp.Key, ConvertValueToJsonNode(kvp.Value)))),
+            Value.KindOneofCase.ListValue => new JsonArray([.. value.ListValue.Values.Select(v => ConvertValueToJsonNode(v))]),
+            _ => throw new InvalidOperationException("Unexpected Value kind: " + value.KindCase),
+        };
     }
 
     // Use to convert tool parameters and return values.

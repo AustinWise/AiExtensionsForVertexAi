@@ -52,28 +52,26 @@ public class VertexAiChatClient : IChatClient
     {
         var request = CreateRequest(messages, options);
         var callSettings = CallSettings.FromCancellationToken(cancellationToken);
-        using (var stream = _client.StreamGenerateContent(request, callSettings))
+        using var stream = _client.StreamGenerateContent(request, callSettings);
+        // TODO: ConfigureAwait
+        await foreach (var response in stream.GetResponseStream())
         {
-            // TODO: ConfigureAwait
-            await foreach (var response in stream.GetResponseStream())
+            if (response.Candidates.Count != 1)
             {
-                if (response.Candidates.Count != 1)
-                {
-                    throw new InvalidOperationException($"Unexpected number of candidates: {response.Candidates.Count}");
-                }
-                var candidate = response.Candidates[0];
-                var chatResponse = new ChatResponseUpdate()
-                {
-                    ResponseId = response.ResponseId,
-                };
-                if (candidate.HasFinishMessage)
-                {
-                    chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
-                }
-                chatResponse.Role = GetRole(candidate.Content);
-                chatResponse.Contents = ConvertToAiContent(candidate.Content);
-                yield return chatResponse;
+                throw new InvalidOperationException($"Unexpected number of candidates: {response.Candidates.Count}");
             }
+            var candidate = response.Candidates[0];
+            var chatResponse = new ChatResponseUpdate()
+            {
+                ResponseId = response.ResponseId,
+            };
+            if (candidate.HasFinishMessage)
+            {
+                chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
+            }
+            chatResponse.Role = GetRole(candidate.Content);
+            chatResponse.Contents = ConvertToAiContent(candidate.Content);
+            yield return chatResponse;
         }
     }
 
@@ -138,8 +136,10 @@ public class VertexAiChatClient : IChatClient
 
     private GenerateContentRequest CreateRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
-        var request = new GenerateContentRequest();
-        request.GenerationConfig = new GenerationConfig();
+        var request = new GenerateContentRequest
+        {
+            GenerationConfig = new GenerationConfig()
+        };
         var systemInstruction = new Content();
         if (options != null)
         {
