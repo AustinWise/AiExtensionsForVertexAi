@@ -30,16 +30,13 @@ public class VertexAiChatClient : IChatClient
         var candidate = response.Candidates[0];
         var chatResponse = new ChatResponse()
         {
+            RawRepresentation = response,
+            FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage),
         };
         if (!TestHelpers.IsRunningInUnitTest)
         {
             chatResponse.ResponseId = response.ResponseId;
         }
-        if (candidate.HasFinishMessage)
-        {
-            chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
-        }
-
         chatResponse.Messages.Add(new ChatMessage()
         {
             Role = GetRole(candidate.Content),
@@ -63,14 +60,12 @@ public class VertexAiChatClient : IChatClient
             var candidate = response.Candidates[0];
             var chatResponse = new ChatResponseUpdate()
             {
+                RawRepresentation = response,
                 ResponseId = response.ResponseId,
+                FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage),
+                Role = GetRole(candidate.Content),
+                Contents = ConvertToAiContent(candidate.Content),
             };
-            if (candidate.HasFinishMessage)
-            {
-                chatResponse.FinishReason = GetFinishReason(candidate.FinishReason, candidate.FinishMessage);
-            }
-            chatResponse.Role = GetRole(candidate.Content);
-            chatResponse.Contents = ConvertToAiContent(candidate.Content);
             yield return chatResponse;
         }
     }

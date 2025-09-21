@@ -12,5 +12,53 @@
       ]
     }
   ],
-  Text: Hi
+  Text: Hi,
+  FinishReason: {
+    Value: stop
+  },
+  RawRepresentation: {
+    Candidates: [
+      {
+        Content: {
+          Role: model,
+          Parts: [
+            {
+              Text: Hi,
+              HasText: true,
+              Thought: false,
+              ThoughtSignature: [],
+              DataCase: Text
+            }
+          ]
+        },
+        AvgLogprobs: -7.748573807475623E-06,
+        FinishReason: Stop,
+        FinishMessage: ,
+        HasFinishMessage: false
+      }
+    ],
+    ModelVersion: gemini-2.5-flash-lite,
+    CreateTime: {
+      Seconds: 1758121211,
+      Nanos: 20004000
+    },
+    ResponseId: -8zKaKScAYmamecP57eFEA,
+    UsageMetadata: {
+      PromptTokenCount: 8,
+      CandidatesTokenCount: 1,
+      TotalTokenCount: 9,
+      PromptTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 8
+        }
+      ],
+      CandidatesTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 1
+        }
+      ]
+    }
+  }
 }

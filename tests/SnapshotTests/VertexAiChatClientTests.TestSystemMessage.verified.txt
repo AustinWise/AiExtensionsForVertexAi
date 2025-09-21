@@ -12,5 +12,53 @@
       ]
     }
   ],
-  Text: Pourquoi le ciel est-il bleu ?
+  Text: Pourquoi le ciel est-il bleu ?,
+  FinishReason: {
+    Value: stop
+  },
+  RawRepresentation: {
+    Candidates: [
+      {
+        Content: {
+          Role: model,
+          Parts: [
+            {
+              Text: Pourquoi le ciel est-il bleu ?,
+              HasText: true,
+              Thought: false,
+              ThoughtSignature: [],
+              DataCase: Text
+            }
+          ]
+        },
+        AvgLogprobs: -0.014944995753467083,
+        FinishReason: Stop,
+        FinishMessage: ,
+        HasFinishMessage: false
+      }
+    ],
+    ModelVersion: gemini-2.5-flash-lite,
+    CreateTime: {
+      Seconds: 1758121210,
+      Nanos: 527528000
+    },
+    ResponseId: -szKaKiZIMW2ld8PzISYmAw,
+    UsageMetadata: {
+      PromptTokenCount: 24,
+      CandidatesTokenCount: 8,
+      TotalTokenCount: 32,
+      PromptTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 24
+        }
+      ],
+      CandidatesTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 8
+        }
+      ]
+    }
+  }
 }

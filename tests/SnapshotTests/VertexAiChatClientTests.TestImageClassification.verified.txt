@@ -12,5 +12,57 @@
       ]
     }
   ],
-  Text: The shape in the picture is a **circle**.
+  Text: The shape in the picture is a **circle**.,
+  FinishReason: {
+    Value: stop
+  },
+  RawRepresentation: {
+    Candidates: [
+      {
+        Content: {
+          Role: model,
+          Parts: [
+            {
+              Text: The shape in the picture is a **circle**.,
+              HasText: true,
+              Thought: false,
+              ThoughtSignature: [],
+              DataCase: Text
+            }
+          ]
+        },
+        AvgLogprobs: -0.007455255836248398,
+        FinishReason: Stop,
+        FinishMessage: ,
+        HasFinishMessage: false
+      }
+    ],
+    ModelVersion: gemini-2.5-flash-lite,
+    CreateTime: {
+      Seconds: 1758121211,
+      Nanos: 365841000
+    },
+    ResponseId: -8zKaJGqFoyamecP96XdyQE,
+    UsageMetadata: {
+      PromptTokenCount: 267,
+      CandidatesTokenCount: 10,
+      TotalTokenCount: 277,
+      PromptTokensDetails: [
+        {
+          Modality: Image,
+          TokenCount: 258
+        },
+        {
+          Modality: Text,
+          TokenCount: 9
+        }
+      ],
+      CandidatesTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 10
+        }
+      ]
+    }
+  }
 }

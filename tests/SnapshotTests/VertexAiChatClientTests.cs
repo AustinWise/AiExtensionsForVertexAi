@@ -19,6 +19,8 @@ public class VertexAiChatClientTests : TestBase
 
         var res = await client.GetResponseAsync("Say \"Hi\" and nothing else.", options);
 
+        Assert.IsType<GenerateContentResponse>(res.RawRepresentation);
+
         await Verify(res);
     }
 

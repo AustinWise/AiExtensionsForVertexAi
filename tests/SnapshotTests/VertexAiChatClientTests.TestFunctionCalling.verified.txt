@@ -42,5 +42,53 @@
       ]
     }
   ],
-  Text: The sum of 1087 and 5099 is 6186.
+  Text: The sum of 1087 and 5099 is 6186.,
+  FinishReason: {
+    Value: stop
+  },
+  RawRepresentation: {
+    Candidates: [
+      {
+        Content: {
+          Role: model,
+          Parts: [
+            {
+              Text: The sum of 1087 and 5099 is 6186.,
+              HasText: true,
+              Thought: false,
+              ThoughtSignature: [],
+              DataCase: Text
+            }
+          ]
+        },
+        AvgLogprobs: -0.013365244581585839,
+        FinishReason: Stop,
+        FinishMessage: ,
+        HasFinishMessage: false
+      }
+    ],
+    ModelVersion: gemini-2.5-flash-lite,
+    CreateTime: {
+      Seconds: 1758121213,
+      Nanos: 57587000
+    },
+    ResponseId: _czKaPPBA-yDm9IP57ak6As,
+    UsageMetadata: {
+      PromptTokenCount: 34,
+      CandidatesTokenCount: 21,
+      TotalTokenCount: 55,
+      PromptTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 34
+        }
+      ],
+      CandidatesTokensDetails: [
+        {
+          Modality: Text,
+          TokenCount: 21
+        }
+      ]
+    }
+  }
 }
