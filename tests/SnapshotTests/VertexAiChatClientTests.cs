@@ -11,7 +11,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestBasicTextGeneration()
     {
         var vertex = CreatePredictionServiceClient();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName);
         var options = new ChatOptions()
         {
             Temperature = 0.0f,
@@ -28,7 +28,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestImageClassification()
     {
         var vertex = CreatePredictionServiceClient();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName);
         List<ChatMessage> chatMessage =
         [
             new ChatMessage(ChatRole.User, [new DataContent(Properties.Resources.circle, "image/png")]),
@@ -48,7 +48,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestSystemInstructions()
     {
         var vertex = CreatePredictionServiceClient();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName);
         var options = new ChatOptions()
         {
             Instructions = "You're a language translator. Your mission is to translate text in English to French.",
@@ -64,7 +64,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestSystemMessage()
     {
         var vertex = CreatePredictionServiceClient();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName);
         List<ChatMessage> chatMessage =
         [
             new ChatMessage(ChatRole.System, "You're a language translator. Your mission is to translate text in English to French."),
@@ -84,7 +84,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestFunctionCalling()
     {
         var vertex = CreatePredictionServiceClient();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME).AsBuilder().UseFunctionInvocation().Build();
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName).AsBuilder().UseFunctionInvocation().Build();
         var options = new ChatOptions()
         {
             Tools = [AIFunctionFactory.Create(AddTwoNumbers)],
@@ -106,7 +106,7 @@ public class VertexAiChatClientTests : TestBase
     public async Task TestGenerationOptions()
     {
         var (vertex, interceptor) = CreatePredictionServiceClientAndInterceptor();
-        var client = new VertexAiChatClient(vertex, defaultModelId: FLASH_MODEL_NAME);
+        var client = new VertexAiChatClient(vertex, defaultModelId: FlashModelName);
         var options = new ChatOptions()
         {
             Temperature = 0.001f,

@@ -12,7 +12,7 @@ public abstract class TestBase
     // TODO: maybe get this from a environmental variable?
     protected const string PROJECT_ID = "ai-test-414105";
     protected const string GCP_REGION = "us-central1";
-    protected const string FLASH_MODEL_NAME = $"projects/{PROJECT_ID}/locations/{GCP_REGION}/publishers/google/models/gemini-2.5-flash-lite";
+    protected static string FlashModelName => CreateModelName("gemini-2.5-flash-lite");
 
     private static bool IsRecording { get; } = GetIsRecording();
 
@@ -22,6 +22,11 @@ public abstract class TestBase
         if (string.IsNullOrEmpty(env))
             return false;
         return env == "1" || env.Equals("true", StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    protected static string CreateModelName(string modelId)
+    {
+        return $"projects/{PROJECT_ID}/locations/{GCP_REGION}/publishers/google/models/{modelId}";
     }
 
     protected PredictionServiceClient CreatePredictionServiceClient([CallerMemberName] string? caller = null)
