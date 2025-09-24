@@ -13,6 +13,7 @@ public abstract class TestBase
     protected const string PROJECT_ID = "ai-test-414105";
     protected const string GCP_REGION = "us-central1";
     protected static string FlashModelName => CreateModelName("gemini-2.5-flash-lite");
+    protected static string EmbeddingModelName => CreateModelName("gemini-embedding-001");
 
     private static bool IsRecording { get; } = GetIsRecording();
 

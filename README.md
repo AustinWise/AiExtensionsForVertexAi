@@ -9,12 +9,15 @@ of those abstractions defined in the
 by wrapping the
 [Google.Cloud.AIPlatform.V1 Nuget package](https://www.nuget.org/packages/Google.Cloud.AIPlatform.V1).
 
+## Known Limitations
+
+The tool calling support only accepts a single tool. This is a limitation of Vertex AI.
+
 ## TODO
 
 * Fix all TODOs in the code.
 * Add exception mapping. Currently we allow `RpcException` to bubble up. There might be something
   nicer we can do.
-* Add an implementation of interfaces besides `IChatClient`, like `IEmbeddingGenerator`.
 * Maybe a different name? The documentation for this API calls the product "Vertex AI" while the wrapped
   Nuget package is called "AI Platform".
 * Maybe wrap the Gemini API instead of Vertex AI? There are not existing client libraries for this,
